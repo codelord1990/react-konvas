@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { render } from "react-dom";
-import { Stage, Layer, Rect, Line, Text } from "react-konva";
+import { Stage, Layer, Rect, Line, Text, Group, Transformer } from "react-konva";
+import { StickyNote } from "./StickyNote";
 
 const ST_RECTANGLE = "rectangle";
 const ST_LINE = "line";
@@ -8,12 +9,45 @@ const ST_VERTICAL_LINE = "vertical";
 const ST_HORIZONTAL_LINE = "horizontal";
 
 const App = () => {
+  const [text, setText] = useState("Click to resize. Double click to edit.");
+  const [width, setWidth] = useState(200);
+  const [height, setHeight] = useState(200);
+  const [selected, setSelected] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
+
   const [shapes, setShapes] = useState([]);
   const isDrawing = useRef(false);
   const [isDraggable, setIsDraggable] = useState(false);
   const status = useRef(ST_LINE);
   const history = useRef([]);
   const [fibonacciLines, setFibonacciLines] = useState([]);
+
+  const [texts, setTexts] = useState(new Array(10).fill("Click to resize. Double click to edit.")); // Initialize texts array with 10 empty strings
+
+  // Function to handle text change for a specific StickyNote
+  const handleTextChange = (index, value) => {
+    const updatedTexts = [...texts];
+    updatedTexts[index] = value;
+    setTexts(updatedTexts);
+  };
+
+  // Render StickyNotes with respective text based on index
+  const renderStickyNotes = () => {
+    return texts.map((text, index) => (
+      <StickyNote
+        key={index}
+        x={50 + index * 150} // Adjust x position based on index
+        y={50}
+        text={text}
+        onTextChange={(value) => handleTextChange(index, value)}
+        // Additional props...
+      />
+    ));
+  };
+
+  const handleDeselect = () => {
+    setIsSelected(false);
+  };
 
   const handleMouseDown = (e) => {
     if (!isDraggable) {
@@ -149,16 +183,28 @@ const App = () => {
         <Layer>
           {shapes.map((shape, i) => (
             shape.type === ST_RECTANGLE ?
-              <Rect
-                key={i}
+              <StickyNote
                 x={shape.points[0]}
                 y={shape.points[1]}
-                width={shape.points[2]}
-                height={shape.points[3]}
-                stroke="black"
-                strokeWidth={2}
+                text={text}
+                colour="#FFDAE1"
+                onTextChange={(value) => setText(value)}
+                width={width}
+                height={height}
+                selected={selected}
                 draggable={isDraggable}
-              /> :
+                onTextResize={(newWidth, newHeight) => {
+                  setWidth(newWidth);
+                  setHeight(newHeight);
+                }}
+                onClick={() => {
+                  setSelected(!selected);
+                }}
+                onTextClick={(newSelected) => {
+                  setSelected(newSelected);
+                }}
+              />
+              :
               <Line
                 key={i}
                 points={shape.points}
@@ -191,6 +237,7 @@ const App = () => {
         </Layer>
       </Stage>
     </div>
+  
   );
 };
 
