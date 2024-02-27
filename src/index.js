@@ -1,62 +1,80 @@
 import React, { useState, useRef } from "react";
-import { createRoot } from "react-dom/client";
-import { Stage, Layer, Star, Text, Line } from "react-konva";
+import { render } from "react-dom";
+import { Stage, Layer, Rect, Line, Text } from "react-konva";
 
 const ST_RECTANGLE = "rectangle";
 const ST_LINE = "line";
+const ST_VERTICAL_LINE = "vertical";
+const ST_HORIZONTAL_LINE = "horizontal";
 
 const App = () => {
-  const [lines, setLines] = useState([]);
+  const [shapes, setShapes] = useState([]);
   const isDrawing = useRef(false);
   const [isDraggable, setIsDraggable] = useState(false);
-  const historyRef = useRef([[]]);
   const status = useRef(ST_LINE);
+  const history = useRef([]);
+  const [fibonacciLines, setFibonacciLines] = useState([]);
 
   const handleMouseDown = (e) => {
     if (!isDraggable) {
       isDrawing.current = true;
-      switch (status) {
-        case ST_RECTANGLE: 
-          //
+      const pos = e.target.getStage().getPointerPosition();
+
+      switch (status.current) {
+        case ST_RECTANGLE:
+          setShapes([...shapes, { type: ST_RECTANGLE, points: [pos.x, pos.y, 0, 0] }]);
           break;
         case ST_LINE:
-          //
-          console.log('line')
-          
-    
+          setShapes([...shapes, { type: ST_LINE, points: [pos.x, pos.y, pos.x, pos.y] }]);
           break;
-
+        case ST_VERTICAL_LINE:
+          setShapes([...shapes, { type: ST_VERTICAL_LINE, points: [pos.x, pos.y, pos.x, pos.y] }]);
+          break;
+        case ST_HORIZONTAL_LINE:
+          setShapes([...shapes, { type: ST_HORIZONTAL_LINE, points: [pos.x, pos.y, pos.x, pos.y] }]);
+        break;
         default:
           break;
       }
-      const { x, y } = e.target.getStage().getPointerPosition();
-      setLines([...lines, { points: [x, y, x, y] }]);
     }
   };
 
   const handleMouseMove = (e) => {
-    if (!isDraggable && lines.length > 0) {
-      if (!isDrawing.current) {
-        return;
-      }
-      const { x, y } = e.target.getStage().getPointerPosition();
-      let lastLine = lines[lines.length - 1];
-      lastLine.points = lastLine.points.slice();
-      lastLine.points[2] = x;
-      lastLine.points[3] = y;
+    if (!isDraggable && shapes.length > 0 && isDrawing.current) {
+      const pos = e.target.getStage().getPointerPosition();
+      let newShape = shapes[shapes.length - 1];
+      newShape.points = newShape.points.slice();
 
-      setLines([...lines.slice(0, lines.length - 1), lastLine]);
+      switch (newShape.type) {
+        case ST_RECTANGLE:
+          newShape.points[2] = pos.x - newShape.points[0];
+          newShape.points[3] = pos.y - newShape.points[1];
+          break;
+        case ST_LINE:
+          newShape.points[2] = pos.x;
+          newShape.points[3] = pos.y;
+          break;
+        case ST_VERTICAL_LINE:
+          newShape.points[2] = newShape.points[0];
+          newShape.points[3] = pos.y;
+          break;
+        case ST_HORIZONTAL_LINE:
+        newShape.points[2] = pos.x;;
+        newShape.points[3] = newShape.points[1];
+        break;
+
+        default:
+          break;
+      }
+
+      setShapes([...shapes.slice(0, shapes.length - 1), newShape]);
     }
   };
 
   const handleMouseUp = () => {
     if (!isDraggable) {
-      isDrawing.current = false
-      
-      historyRef.current.push(lines);
-      console.log(historyRef.current)
-    // setLines([]);
-      // save line
+      isDrawing.current = false;
+      history.current = [...history.current, shapes];
     }
   };
 
@@ -65,27 +83,61 @@ const App = () => {
   };
 
   const clearDrawing = () => {
-    console.log(lines)
-    // historyRef.current = [...historyRef.current, lines];
-    setLines([]);
+    setShapes([]);
   };
 
-  const undoLine = () => {
-    if (historyRef.current.length > 0) {
-      console.log(historyRef.current)
-      setLines(historyRef.current[historyRef.current.length - 1]);
-      historyRef.current = historyRef.current.slice(0, -1);
+  const undoDrawing = () => {
+    if (history.current.length > 0) {
+      history.current.pop();
+      setShapes(history.current[history.current.length - 1] || []);
     }
+  };
+
+  const setRectangle = () => {
+    status.current = ST_RECTANGLE;
+  };
+
+  const setLine = () => {
+    status.current = ST_LINE;
+  };
+
+  const setVerticalLine = () => {
+    status.current = ST_VERTICAL_LINE;
+  };
+
+  const setHorizontalLine = () => {
+    status.current = ST_HORIZONTAL_LINE;
+  };
+
+  const calculateFibonacci = () => {
+    if (shapes.length === 0) return;
+
+    const minPoint = Math.min(...shapes.map(shape => Math.min(...shape.points)));
+    const maxPoint = Math.max(...shapes.map(shape => Math.max(...shape.points)));
+    const diff = maxPoint - minPoint;
+
+    setFibonacciLines([
+      { pos: minPoint, ratio: '0.0' },
+      { pos: minPoint + diff * 0.236, ratio: '23.6' },
+      { pos: minPoint + diff * 0.382, ratio: '38.2' },
+      { pos: minPoint + diff * 0.5, ratio: '50.0' },
+      { pos: minPoint + diff * 0.618, ratio: '61.8' },
+      { pos: maxPoint, ratio: '100.0' },
+    ]);
   };
 
   return (
     <div>
+      <button onClick={setLine}>Line</button>
+      <button onClick={setRectangle}>Rectangle</button>
+      <button onClick={setVerticalLine}>Vertical Line</button>
+      <button onClick={setHorizontalLine}>Horizontal Line</button>
       <button onClick={toggleDraggable}>
         {isDraggable ? "Disable Draggable" : "Enable Draggable"}
       </button>
-
-      <button onClick={clearDrawing}>Clear Dragging</button>
-      <button onClick={undoLine}>Undo Dragging</button>
+      <button onClick={undoDrawing}>Undo</button>
+      <button onClick={clearDrawing}>Clear Drawing</button>
+      <button onClick={calculateFibonacci}>Calculate Fibonacci</button>
 
       <Stage
         width={window.innerWidth}
@@ -95,19 +147,46 @@ const App = () => {
         onMouseUp={handleMouseUp}
       >
         <Layer>
-          {lines.map((line, i) => (
-            <Line
-              key={i}
-              points={line.points}
-              stroke="black"
-              strokeWidth={6}
-              tension={0.5}
-              lineCap="round"
-              globalCompositeOperation={
-                isDraggable ? "source-over" : "destination-over"
-              }
-              draggable={isDraggable}
-            />
+          {shapes.map((shape, i) => (
+            shape.type === ST_RECTANGLE ?
+              <Rect
+                key={i}
+                x={shape.points[0]}
+                y={shape.points[1]}
+                width={shape.points[2]}
+                height={shape.points[3]}
+                stroke="black"
+                strokeWidth={2}
+                draggable={isDraggable}
+              /> :
+              <Line
+                key={i}
+                points={shape.points}
+                stroke="black"
+                strokeWidth={6}
+                tension={0.5}
+                lineCap="round"
+                globalCompositeOperation={
+                  isDraggable ? "source-over" : "destination-over"
+                }
+                draggable={isDraggable}
+              />
+          ))}
+          {fibonacciLines.map((line, i) => (
+            <>
+              <Line
+                key={i}
+                points={[0, line.pos, window.innerWidth, line.pos]}
+                stroke="red"
+                strokeWidth={2}
+                draggable={isDraggable}
+              />
+              <Text
+                text={`${line.ratio}%`}
+                y={line.pos}
+                fill='red'
+              />
+            </>
           ))}
         </Layer>
       </Stage>
@@ -115,6 +194,4 @@ const App = () => {
   );
 };
 
-const container = document.getElementById("root");
-const root = createRoot(container);
-root.render(<App />);
+render(<App />, document.getElementById("root"));
