@@ -22,14 +22,15 @@ const App = () => {
         case ST_LINE:
           //
           console.log('line')
-          const { x, y } = e.target.getStage().getPointerPosition();
-          setLines([...lines, { points: [x, y, x, y] }]);
+          
     
           break;
 
         default:
           break;
       }
+      const { x, y } = e.target.getStage().getPointerPosition();
+      setLines([...lines, { points: [x, y, x, y] }]);
     }
   };
 
