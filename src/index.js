@@ -9,7 +9,7 @@ const ST_VERTICAL_LINE = "vertical";
 const ST_HORIZONTAL_LINE = "horizontal";
 
 const App = () => {
-  const [text, setText] = useState("Click to resize. Double click to edit.");
+  // const [text, setText] = useState("Click to resize. Double click to edit.");
   const [width, setWidth] = useState(200);
   const [height, setHeight] = useState(200);
   const [selected, setSelected] = useState(false);
@@ -22,27 +22,13 @@ const App = () => {
   const history = useRef([]);
   const [fibonacciLines, setFibonacciLines] = useState([]);
 
-  const [texts, setTexts] = useState(new Array(10).fill("Click to resize. Double click to edit.")); // Initialize texts array with 10 empty strings
+  const [texts, setTexts] = useState({}); // Initialize texts array with 10 empty strings
 
   // Function to handle text change for a specific StickyNote
   const handleTextChange = (index, value) => {
-    const updatedTexts = [...texts];
+    const updatedTexts = {...texts};
     updatedTexts[index] = value;
     setTexts(updatedTexts);
-  };
-
-  // Render StickyNotes with respective text based on index
-  const renderStickyNotes = () => {
-    return texts.map((text, index) => (
-      <StickyNote
-        key={index}
-        x={50 + index * 150} // Adjust x position based on index
-        y={50}
-        text={text}
-        onTextChange={(value) => handleTextChange(index, value)}
-        // Additional props...
-      />
-    ));
   };
 
   const handleDeselect = () => {
@@ -186,9 +172,9 @@ const App = () => {
               <StickyNote
                 x={shape.points[0]}
                 y={shape.points[1]}
-                text={text}
+                text={texts[i] || 'Default Text'}
                 colour="#FFDAE1"
-                onTextChange={(value) => setText(value)}
+                onTextChange={(value) => handleTextChange(i, value)}
                 width={width}
                 height={height}
                 selected={selected}
